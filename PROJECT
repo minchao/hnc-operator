@@ -1,0 +1,6 @@
+domain: operator
+layout:
+- go.kubebuilder.io/v3
+projectName: hnc-operator
+repo: github.com/minchao/hnc-operator
+version: "3"
