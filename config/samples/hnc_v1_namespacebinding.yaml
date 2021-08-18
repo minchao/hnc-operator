@@ -1,0 +1,7 @@
+apiVersion: hnc.operator/v1
+kind: NamespaceBinding
+metadata:
+  name: namespacebinding-sample
+spec:
+  # Add fields here
+  foo: bar

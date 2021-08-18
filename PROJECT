@@ -3,4 +3,13 @@ layout:
 - go.kubebuilder.io/v3
 projectName: hnc-operator
 repo: github.com/minchao/hnc-operator
+resources:
+- api:
+    crdVersion: v1
+  controller: true
+  domain: operator
+  group: hnc
+  kind: NamespaceBinding
+  path: github.com/minchao/hnc-operator/api/v1
+  version: v1
 version: "3"

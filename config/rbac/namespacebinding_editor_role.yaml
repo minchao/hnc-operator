@@ -1,0 +1,24 @@
+# permissions for end users to edit namespacebindings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: namespacebinding-editor-role
+rules:
+- apiGroups:
+  - hnc.operator
+  resources:
+  - namespacebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - hnc.operator
+  resources:
+  - namespacebindings/status
+  verbs:
+  - get
