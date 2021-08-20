@@ -23,19 +23,37 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+const (
+	Config = "config"
+)
+
 // NamespaceBindingSpec defines the desired state of NamespaceBinding
 type NamespaceBindingSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of NamespaceBinding. Edit namespacebinding_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Selector is a label selector, which is used to select the namespace to be set their parent.
+	Selector string `json:"selector"`
+
+	// Parent is the parent of the selected namespaces.
+	Parent string `json:"parent"`
+
+	// Interval is the reconciler execution interval (default is 30 seconds).
+	Interval *int64 `json:"interval,omitempty"`
+
+	Exclusions []Exclusion `json:"exclusions,omitempty"`
+}
+
+type Exclusion struct {
+	Value string `json:"value"`
 }
 
 // NamespaceBindingStatus defines the observed state of NamespaceBinding
 type NamespaceBindingStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	LastExecutionTime *metav1.Time `json:"lastExecutionTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -1,0 +1,81 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: namespacebindings.hnc.operator
+spec:
+  group: hnc.operator
+  names:
+    kind: NamespaceBinding
+    listKind: NamespaceBindingList
+    plural: namespacebindings
+    singular: namespacebinding
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: NamespaceBinding is the Schema for the namespacebindings API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NamespaceBindingSpec defines the desired state of NamespaceBinding
+            properties:
+              exclusions:
+                items:
+                  properties:
+                    value:
+                      type: string
+                  required:
+                  - value
+                  type: object
+                type: array
+              interval:
+                description: Interval is the reconciler execution interval (default
+                  is 30 seconds).
+                format: int64
+                type: integer
+              parent:
+                description: Parent is the parent of the selected namespaces.
+                type: string
+              selector:
+                description: Selector is a label selector, which is used to select
+                  the namespace to be set their parent.
+                type: string
+            required:
+            - parent
+            - selector
+            type: object
+          status:
+            description: NamespaceBindingStatus defines the observed state of NamespaceBinding
+            properties:
+              lastExecutionTime:
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
