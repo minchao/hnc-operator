@@ -85,9 +85,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "NamespaceBinding")
 		os.Exit(1)
 	}
-	if err = (&hncv1.NamespaceBinding{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "NamespaceBinding")
-		os.Exit(1)
+
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err = (&hncv1.NamespaceBinding{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "NamespaceBinding")
+			os.Exit(1)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 

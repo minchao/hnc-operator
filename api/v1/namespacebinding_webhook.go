@@ -17,7 +17,11 @@ limitations under the License.
 package v1
 
 import (
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -42,7 +46,10 @@ var _ webhook.Defaulter = &NamespaceBinding{}
 func (r *NamespaceBinding) Default() {
 	namespacebindinglog.Info("default", "name", r.Name)
 
-	// TODO(user): fill in your defaulting logic.
+	if r.Spec.Interval == nil {
+		r.Spec.Interval = new(int64)
+		*r.Spec.Interval = 30
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -54,22 +61,39 @@ var _ webhook.Validator = &NamespaceBinding{}
 func (r *NamespaceBinding) ValidateCreate() error {
 	namespacebindinglog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	return r.validateNamespaceBinding()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *NamespaceBinding) ValidateUpdate(old runtime.Object) error {
 	namespacebindinglog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
-	return nil
+	return r.validateNamespaceBinding()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *NamespaceBinding) ValidateDelete() error {
 	namespacebindinglog.Info("validate delete", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
+	return nil
+}
+
+func (r *NamespaceBinding) validateNamespaceBinding() error {
+	var allErrs field.ErrorList
+	if err := r.validateLabelSelector(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "labels.Parse", Kind: "NamespaceBinding"},
+		r.Namespace, allErrs)
+}
+
+func (r *NamespaceBinding) validateLabelSelector() *field.Error {
+	if _, err := labels.Parse(r.Spec.Selector); err != nil {
+		return field.Invalid(field.NewPath("spec").Child("selector"), r.Spec.Selector, err.Error())
+	}
 	return nil
 }
