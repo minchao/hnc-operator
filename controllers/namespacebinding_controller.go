@@ -90,6 +90,14 @@ func (r *NamespaceBindingReconciler) Reconcile(ctx context.Context, _ ctrl.Reque
 	namespaces = r.filterNamespaces(namespaces, inst.Spec.Exclusions)
 	r.setParentForSelectedNamespaces(ctx, namespaces, inst.Spec.Parent)
 
+	now := metav1.NewTime(time.Now())
+	inst.Status.LastExecutionTime = &now
+
+	if err := r.Status().Update(ctx, inst); err != nil {
+		log.Error(err, "unable to update status")
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{
 		RequeueAfter: time.Duration(*inst.Spec.Interval) * time.Second,
 	}, nil
