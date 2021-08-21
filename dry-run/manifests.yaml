@@ -1,0 +1,458 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: hnc-operator-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: hnc-operator-system/hnc-operator-serving-cert
+    controller-gen.kubebuilder.io/version: v0.4.1
+  name: namespacebindings.hnc.operator
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: hnc-operator-webhook-service
+          namespace: hnc-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: hnc.operator
+  names:
+    kind: NamespaceBinding
+    listKind: NamespaceBindingList
+    plural: namespacebindings
+    singular: namespacebinding
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: NamespaceBinding is the Schema for the namespacebindings API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NamespaceBindingSpec defines the desired state of NamespaceBinding
+            properties:
+              exclusions:
+                items:
+                  properties:
+                    value:
+                      type: string
+                  required:
+                  - value
+                  type: object
+                type: array
+              interval:
+                description: Interval is the reconciler execution interval (default
+                  is 30 seconds).
+                format: int64
+                type: integer
+              parent:
+                description: Parent is the parent of the selected namespaces.
+                type: string
+              selector:
+                description: Selector is a label selector, which is used to select
+                  the namespace to be set their parent.
+                type: string
+            required:
+            - parent
+            - selector
+            type: object
+          status:
+            description: NamespaceBindingStatus defines the observed state of NamespaceBinding
+            properties:
+              lastExecutionTime:
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hnc-operator-controller-manager
+  namespace: hnc-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hnc-operator-leader-election-role
+  namespace: hnc-operator-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: hnc-operator-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - hnc.operator
+  resources:
+  - namespacebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - hnc.operator
+  resources:
+  - namespacebindings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - hnc.operator
+  resources:
+  - namespacebindings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - hnc.x-k8s.io
+  resources:
+  - hierarchyconfigurations
+  verbs:
+  - create
+  - get
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hnc-operator-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hnc-operator-proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hnc-operator-leader-election-rolebinding
+  namespace: hnc-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hnc-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: hnc-operator-controller-manager
+  namespace: hnc-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hnc-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hnc-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: hnc-operator-controller-manager
+  namespace: hnc-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hnc-operator-proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hnc-operator-proxy-role
+subjects:
+- kind: ServiceAccount
+  name: hnc-operator-controller-manager
+  namespace: hnc-operator-system
+---
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceName: 3610307c.operator
+kind: ConfigMap
+metadata:
+  name: hnc-operator-manager-config
+  namespace: hnc-operator-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: hnc-operator-controller-manager-metrics-service
+  namespace: hnc-operator-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hnc-operator-webhook-service
+  namespace: hnc-operator-system
+spec:
+  ports:
+  - port: 443
+    targetPort: 9443
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: hnc-operator-controller-manager
+  namespace: hnc-operator-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        command:
+        - /manager
+        image: ghcr.io/minchao/hnc-operator:0.1.0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: hnc-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: hnc-operator-serving-cert
+  namespace: hnc-operator-system
+spec:
+  dnsNames:
+  - hnc-operator-webhook-service.hnc-operator-system.svc
+  - hnc-operator-webhook-service.hnc-operator-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: hnc-operator-selfsigned-issuer
+  secretName: webhook-server-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: hnc-operator-selfsigned-issuer
+  namespace: hnc-operator-system
+spec:
+  selfSigned: {}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: hnc-operator-system/hnc-operator-serving-cert
+  name: hnc-operator-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: hnc-operator-webhook-service
+      namespace: hnc-operator-system
+      path: /mutate-hnc-operator-v1-namespacebinding
+  failurePolicy: Fail
+  name: mnamespacebinding.kb.io
+  rules:
+  - apiGroups:
+    - hnc.operator
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - namespacebindings
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: hnc-operator-system/hnc-operator-serving-cert
+  name: hnc-operator-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: hnc-operator-webhook-service
+      namespace: hnc-operator-system
+      path: /validate-hnc-operator-v1-namespacebinding
+  failurePolicy: Fail
+  name: vnamespacebinding.kb.io
+  rules:
+  - apiGroups:
+    - hnc.operator
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - namespacebindings
+  sideEffects: None
